@@ -4,16 +4,12 @@ import edu.upc.dsa.models.Maleta;
 import edu.upc.dsa.models.Vuelo;
 import edu.upc.dsa.models.Avion;
 import edu.upc.dsa.models.Usuario;
-import edu.upc.dsa.exceptions.AvionNoExisteException;
-import edu.upc.dsa.exceptions.VueloNoExisteException;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 
@@ -27,13 +23,13 @@ public class SistemaGestionTest {
 
         Avion avion1 = new Avion("A1", "Boeing 737", "Iberia");
         Avion avion2 = new Avion("A2", "Airbus A320", "Vueling");
-        Usuario usuario1 = new Usuario("U1", "Joel");
-        Usuario usuario2 = new Usuario("U2", "user2");
+        Usuario usuario1 = new Usuario("U1", "Joel", "123");
+        Usuario usuario2 = new Usuario("U2", "David", "123");
 
         this.sistemaGestion.addAvion(avion1.getId(), avion1.getModelo(), avion1.getCompania());
         this.sistemaGestion.addAvion(avion2.getId(), avion2.getModelo(), avion2.getCompania());
-        ((SistemaGestionImpl) this.sistemaGestion).addUsuario(usuario1);
-        ((SistemaGestionImpl) this.sistemaGestion).addUsuario(usuario2);
+        this.sistemaGestion.addUsuario(usuario1);
+        this.sistemaGestion.addUsuario(usuario2);
 
         this.sistemaGestion.addVuelo("V1", new Date(), new Date(), "A1", "Barcelona", "Madrid");
         this.sistemaGestion.addVuelo("V2", new Date(), new Date(), "A2", "Madrid", "Barcelona");
@@ -44,7 +40,7 @@ public class SistemaGestionTest {
 
     @After
     public void tearDown() {
-        ((SistemaGestionImpl) this.sistemaGestion).clear();
+        this.sistemaGestion.clear();
     }
 
     @Test
@@ -83,5 +79,32 @@ public class SistemaGestionTest {
         List<Maleta> maletas = this.sistemaGestion.getMaletasFacturadas("V1");
         Assert.assertEquals(1, maletas.size());
         Assert.assertEquals("Joel", maletas.get(0).getUsuario().getNombre());
+    }
+
+    @Test
+    public void testGetAllAviones() {
+        List<Avion> aviones = sistemaGestion.getAllAviones();
+        Assert.assertEquals(2, aviones.size());
+        Assert.assertEquals("Iberia", aviones.get(0).getCompania());
+    }
+
+    @Test
+    public void testGetAllVuelos() {
+        List<Vuelo> vuelos = sistemaGestion.getAllVuelos();
+        Assert.assertEquals(2, vuelos.size());
+        Assert.assertEquals("Barcelona", vuelos.get(0).getOrigen());
+    }
+
+    @Test
+    public void testGetAllUsuarios() {
+        List<Usuario> usuarios = sistemaGestion.getAllUsuarios();
+        Assert.assertEquals(2, usuarios.size());
+        Assert.assertEquals("Joel", usuarios.get(0).getNombre());
+    }
+
+    @Test
+    public void testGetAllAfterAdd() {
+        sistemaGestion.addAvion("A3", "Boeing 747", "Lufthansa");
+        Assert.assertEquals(3, sistemaGestion.getAllAviones().size());
     }
 }

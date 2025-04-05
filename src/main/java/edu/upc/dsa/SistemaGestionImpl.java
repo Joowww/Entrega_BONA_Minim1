@@ -1,31 +1,28 @@
 package edu.upc.dsa;
 
-import edu.upc.dsa.models.Vuelo;
-import edu.upc.dsa.models.Avion;
-import edu.upc.dsa.models.Usuario;
-import edu.upc.dsa.models.Maleta;
-
 import edu.upc.dsa.exceptions.*;
 import edu.upc.dsa.models.*;
+import java.util.*;
 import org.apache.log4j.Logger;
 
-import java.util.Collections;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Queue;
 
 public class SistemaGestionImpl implements SistemaGestion {
     private static SistemaGestionImpl instance;
-    private List<Avion> aviones;
-    private List<Vuelo> vuelos;
-    private List<Usuario> usuarios;
+    private Map<String, Avion> aviones;
+    private Map<String, Vuelo> vuelos;
+    private Map<String, Usuario> usuarios;
+    List<Avion> AllAviones;
+    List<Vuelo> AllVuelos;
+    List<Usuario> AllUsuarios;
     final static Logger logger = Logger.getLogger(SistemaGestionImpl.class);
 
     private SistemaGestionImpl() {
-        this.aviones = new ArrayList<>();
-        this.vuelos = new ArrayList<>();
-        this.usuarios = new ArrayList<>();
+        this.aviones = new HashMap<>();
+        this.vuelos = new HashMap<>();
+        this.usuarios = new HashMap<>();
+        this.AllAviones = new ArrayList<>();
+        this.AllVuelos = new ArrayList<>();
+        this.AllUsuarios = new ArrayList<>();
     }
 
     public static SistemaGestion getInstance() {
@@ -33,86 +30,88 @@ public class SistemaGestionImpl implements SistemaGestion {
         return instance;
     }
 
-    public void addAvion(String id, String modelo, String compania) {
+    public Avion addAvion(String id, String modelo, String compania) {
         logger.info("addAvion: id=" + id + ", modelo=" + modelo + ", compania=" + compania);
-        for (Avion avion : aviones) {
-            if (avion.getId().equals(id)) {
-                avion.setModelo(modelo);
-                avion.setCompania(compania);
-                logger.info("Avion updated: " + avion);
-                return;
+        try {
+            if (aviones.containsKey(id)) {
+                Avion avion = aviones.get(id);
+                if (avion.getModelo().equals(modelo) && avion.getCompania().equals(compania)) {
+                    logger.error("No se pueden usar los mismos valores para modelo y compañía en un ID existente");
+                    throw new MismosParamConMismoIdException("El avión con ID " + id + " ya tiene esos valores.");
+                }
+                else {
+                    avion.setModelo(modelo);
+                    avion.setCompania(compania);
+                    logger.info("Avion actualizado: " + avion);
+                }
+
+            }
+            else {
+                Avion avion = new Avion(id, modelo, compania);
+                aviones.put(id, avion);
+                logger.info("Avion añadido: " + avion);
             }
         }
-        Avion avion = new Avion(id, modelo, compania);
-        aviones.add(avion);
-        logger.info("Avion added: " + avion);
+        catch (MismosParamConMismoIdException ex) {
+            logger.error("Excepción mismos parametros con mismo id: ", ex);
+            return null;
+        }
+        return aviones.get(id);
     }
 
 
-    public void addVuelo(String id, Date horaSalida, Date horaLlegada, String avionId, String origen, String destino) {
+    public Vuelo addVuelo(String id, Date horaSalida, Date horaLlegada, String avionId, String origen, String destino) {
         logger.info("addVuelo: id=" + id + ", horaSalida=" + horaSalida + ", horaLlegada=" + horaLlegada + ", avionId=" + avionId + ", origen=" + origen + ", destino=" + destino);
         try {
-            Avion avion = null;
-            for (Avion a : aviones) {
-                if (a.getId().equals(avionId)) {
-                    avion = a;
-                    break;
-                }
-            }
-            if (avion == null) {
+            if (!aviones.containsKey(avionId)) {
                 logger.error("Avion no existe: " + avionId);
-                throw new AvionNoExisteException("Avion no existe");
+                throw new AvionNoExisteException("Avion con ID " + avionId + " no existe");
             }
-            for (Vuelo vuelo : vuelos) {
-                if (vuelo.getId().equals(id)) {
+            if (vuelos.containsKey(id)) {
+                Vuelo vuelo = vuelos.get(id);
+                if (vuelo.getHoraSalida().equals(horaSalida) && vuelo.getHoraLlegada().equals(horaLlegada) && vuelo.getAvion().getId().equals(avionId) && vuelo.getOrigen().equals(origen) && vuelo.getDestino().equals(destino)) {
+                    logger.error("No se pueden usar los mismos valores para el vuelo con ID existente");
+                    throw new MismosParamConMismoIdException("El vuelo con ID " + id + " ya tiene esos valores.");
+                }
+                else {
                     vuelo.setHoraSalida(horaSalida);
                     vuelo.setHoraLlegada(horaLlegada);
-                    vuelo.setAvion(avion);
+                    vuelo.setAvion(aviones.get(avionId));
                     vuelo.setOrigen(origen);
                     vuelo.setDestino(destino);
-                    logger.info("Vuelo updated: " + vuelo);
-                    return;
+                    logger.info("Vuelo actualizado: " + vuelo);
                 }
             }
-            Vuelo vuelo = new Vuelo(id, horaSalida, horaLlegada, avion, origen, destino);
-            vuelos.add(vuelo);
-            logger.info("Vuelo added: " + vuelo);
-        } catch (AvionNoExisteException ex) {
-            logger.error("Error adding vuelo: " + ex.getMessage());
+            else {
+                Vuelo vuelo = new Vuelo(id, horaSalida, horaLlegada, aviones.get(avionId), origen, destino);
+                vuelos.put(id, vuelo);
+                logger.info("Vuelo añadido: " + vuelo);
+            }
+        } catch (AvionNoExisteException|MismosParamConMismoIdException ex) {
+            logger.error("Error al añadir vuelo: " + ex.getMessage());
+            return null;
         }
+        return vuelos.get(id);
     }
 
 
     public void facturarMaleta(String vueloId, Usuario usuario) {
-        logger.info("facturarMaleta: vueloId=" + vueloId + ", usuario=" + usuario);
+        logger.info("facturarMaleta: vueloId=" + vueloId + ", usuario=" + usuario.getId());
         try {
-            boolean usuarioExiste = false;
-            for (Usuario u : usuarios) {
-                if (u.getId().equals(usuario.getId())) {
-                    usuarioExiste = true;
-                    break;
-                }
-            }
-            if (!usuarioExiste) {
+            if(!usuarios.containsKey(usuario.getId())) {
                 logger.error("Usuario no existe: " + usuario.getId());
-                throw new UsuarioNoExisteException("Usuario no existe");
+                throw new UsuarioNoExisteException("Usuario " + usuario.getId() + " no existe");
             }
-
-            Vuelo vuelo = null;
-            for (Vuelo v : vuelos) {
-                if (v.getId().equals(vueloId)) {
-                    vuelo = v;
-                    break;
-                }
-            }
-            if (vuelo == null) {
+            if (!vuelos.containsKey(vueloId)) {
                 logger.error("Vuelo no existe: " + vueloId);
-                throw new VueloNoExisteException("Vuelo no existe");
+                throw new VueloNoExisteException("Vuelo" + vueloId + "no existe");
             }
-
-            Maleta maleta = new Maleta(usuario);
-            vuelo.addMaleta(maleta);
-            logger.info("Maleta added: " + maleta);
+            else {
+                Vuelo vuelo = vuelos.get(vueloId);
+                Maleta maleta = new Maleta(usuario, vuelos.get(vueloId));
+                vuelo.addMaleta(maleta);
+                logger.info("Maleta added: " + maleta);
+            }
         } catch (VueloNoExisteException | UsuarioNoExisteException ex) {
             logger.error("Error facturando maleta: " + ex.getMessage());
         }
@@ -121,52 +120,98 @@ public class SistemaGestionImpl implements SistemaGestion {
     public List<Maleta> getMaletasFacturadas(String vueloId) {
         logger.info("getMaletasFacturadas: vueloId=" + vueloId);
         try {
-            Vuelo vuelo = null;
-            for (Vuelo v : vuelos) {
-                if (v.getId().equals(vueloId)) {
-                    vuelo = v;
-                    break;
-                }
-            }
-            if (vuelo == null) {
+            if (!vuelos.containsKey(vueloId)) {
                 logger.error("Vuelo no existe: " + vueloId);
-                throw new VueloNoExisteException("Vuelo no existe");
+                throw new VueloNoExisteException("Vuelo" + vueloId + " no existe");
             }
-            List<Maleta> maletas = new ArrayList<>(vuelo.getMaletas());
-            Collections.reverse(maletas);
-            logger.info("Maletas found: " + maletas);
-            return maletas;
+            else{
+                Vuelo vuelo = vuelos.get(vueloId);
+                Stack<Maleta> maletasStack = vuelo.getMaletas();
+                List<Maleta> maletasList = new ArrayList<>();
+                Stack<Maleta> tempStack = new Stack<>();
+                tempStack.addAll(maletasStack);
+                while (!tempStack.isEmpty()) {
+                    maletasList.add(tempStack.pop());
+                }
+                logger.info("Maletas facturadas: " + maletasList);
+                return maletasList;
+            }
         } catch (VueloNoExisteException ex) {
-            logger.error("Error getting maletas facturadas: " + ex.getMessage());
+            logger.error("Error al obtener maletas facturadas: " + ex.getMessage());
             return null;
         }
     }
 
-    public Avion getAvion(String id) {
-        for (Avion avion : aviones) {
-            if (avion.getId().equals(id)) {
+    public Usuario addUsuario(Usuario usuario) {
+        usuarios.put(usuario.getId(), usuario);
+        return usuario;
+    }
+
+    public Avion getAvion(String id){
+        try {
+            if (!aviones.containsKey(id)) {
+                logger.error("Avion no existe: " + id);
+                throw new AvionNoExisteException("Avion con ID " + id + "no existe");
+            }
+            else {
+                Avion avion = aviones.get(id);
+                logger.info("Avion obtenido: " + avion);
                 return avion;
             }
+        } catch (AvionNoExisteException ex) {
+            logger.error("Error al obtener avion: " + ex.getMessage());
+            return null;
         }
-        return null;
     }
 
-    public Vuelo getVuelo(String id) {
-        for (Vuelo vuelo : vuelos) {
-            if (vuelo.getId().equals(id)) {
+    public Vuelo getVuelo(String id){
+        try {
+            logger.info("getVuelo: id=" + id);
+            if (!vuelos.containsKey(id)) {
+                logger.error("Vuelo no existe: " + id);
+                throw new VueloNoExisteException("Vuelo con ID " + id + " no existe");
+            }
+            else {
+                Vuelo vuelo = vuelos.get(id);
+                logger.info("Vuelo obtenido: " + vuelo);
                 return vuelo;
             }
+        } catch (VueloNoExisteException ex) {
+            logger.error("Error al obtener vuelo: " + ex.getMessage());
+            return null;
         }
-        return null;
     }
 
-    public void addUsuario(Usuario usuario) {
-        if (usuario != null && !usuarios.contains(usuario)) {
-            usuarios.add(usuario);
-            logger.info("Usuario added: " + usuario);
+    public Usuario getUsuario(String id) {
+        try {
+            logger.info("getUsuario: id=" + id);
+            if (!usuarios.containsKey(id)) {
+                logger.error("Usuario no existe: " + id);
+                throw new UsuarioNoExisteException("Usuario con ID " + id + " no existe");
+            }
+            else {
+                Usuario usuario = usuarios.get(id);
+                logger.info("Usuario obtenido: " + usuario);
+                return usuario;
+            }
+        } catch (UsuarioNoExisteException ex) {
+            logger.error("Error al obtener usuario: " + ex.getMessage());
+            return null;
         }
-//        this.usuarios.add(usuario);
-//        logger.info("Usuario added: " + usuario);
+    }
+    public List<Usuario> getAllUsuarios() {
+        logger.info("getAllUsuarios");
+        return new ArrayList<>(usuarios.values());
+    }
+
+    public List<Vuelo> getAllVuelos() {
+        logger.info("getAllVuelos");
+        return new ArrayList<>(vuelos.values());
+    }
+
+    public List<Avion> getAllAviones() {
+        logger.info("getAllAviones");
+        return new ArrayList<>(aviones.values());
     }
 
     public void clear() {
@@ -176,17 +221,7 @@ public class SistemaGestionImpl implements SistemaGestion {
         logger.info("Sistema gestion cleared");
     }
 
-    @Override
     public int sizeUsers() {
         return usuarios.size();
-    }
-
-    public Usuario getUsuario(String u1) {
-        for (Usuario usuario : usuarios) {
-            if (usuario.getId().equals(u1)) {
-                return usuario;
-            }
-        }
-        return null;
     }
 }

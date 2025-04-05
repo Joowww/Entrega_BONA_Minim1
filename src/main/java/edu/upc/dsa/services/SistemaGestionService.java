@@ -30,13 +30,13 @@ public class SistemaGestionService {
         if (sistemaGestion.sizeUsers() == 0) {
             Avion avion1 = new Avion("A1", "Boeing 737", "Iberia");
             Avion avion2 = new Avion("A2", "Airbus A320", "Vueling");
-            Usuario usuario1 = new Usuario("U1", "Joel");
-            Usuario usuario2 = new Usuario("U2", "user2");
+            Usuario usuario1 = new Usuario("U1", "Joel", "Moreno");
+            Usuario usuario2 = new Usuario("U2", "David", "Sanchez");
 
             this.sistemaGestion.addAvion(avion1.getId(), avion1.getModelo(), avion1.getCompania());
             this.sistemaGestion.addAvion(avion2.getId(), avion2.getModelo(), avion2.getCompania());
-            ((SistemaGestionImpl) this.sistemaGestion).addUsuario(usuario1);
-            ((SistemaGestionImpl) this.sistemaGestion).addUsuario(usuario2);
+            this.sistemaGestion.addUsuario(usuario1);
+            this.sistemaGestion.addUsuario(usuario2);
 
             this.sistemaGestion.addVuelo("V1", new Date(), new Date(), "A1", "Barcelona", "Madrid");
             this.sistemaGestion.addVuelo("V2", new Date(), new Date(), "A2", "Madrid", "Barcelona");
@@ -49,29 +49,49 @@ public class SistemaGestionService {
     @POST
     @ApiOperation(value = "create a new Avion", notes = "asdasd")
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Successful", response = Avion.class),
-            @ApiResponse(code = 500, message = "Validation Error")
+            @ApiResponse(code = 201, message = "Successful, creado", response = Avion.class),
+            @ApiResponse(code = 200, message = "Successful, actualizado", response = Avion.class),
+            @ApiResponse(code = 500, message = "Validation Error"),
+            @ApiResponse(code = 409, message = "Parámetros duplicados")
     })
     @Path("/avion")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response newAvion(Avion avion) {
-        if (avion.getId() == null || avion.getModelo() == null || avion.getCompania() == null)
+        if (avion.getId() == null || avion.getModelo() == null || avion.getCompania() == null) {
             return Response.status(500).entity(avion).build();
-        this.sistemaGestion.addAvion(avion.getId(), avion.getModelo(), avion.getCompania());
-        return Response.status(201).entity(avion).build();
+        }
+        boolean existiaPreviamente = sistemaGestion.getAvion(avion.getId()) != null;
+        Avion avionResultado = sistemaGestion.addAvion(
+                avion.getId(),
+                avion.getModelo(),
+                avion.getCompania()
+        );
+        if (avionResultado == null) {
+            return Response.status(409).entity("Mismo ID con mismos parámetros").build();
+        }
+        if (existiaPreviamente) {
+            return Response.status(200).entity(avionResultado).build();
+        } else {
+            return Response.status(201).entity(avionResultado).build();
+        }
     }
 
     @POST
     @ApiOperation(value = "create a new Vuelo", notes = "asdasd")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Successful", response = Vuelo.class),
-            @ApiResponse(code = 500, message = "Validation Error")
+            @ApiResponse(code = 500, message = "Validation Error"),
+            @ApiResponse(code = 404, message = "Avion no encontrado"),
+            //@ApiResponse(code = 409, message = "Add parameters")
     })
     @Path("/vuelo")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response newVuelo(Vuelo vuelo) {
         if (vuelo.getId() == null || vuelo.getHoraSalida() == null || vuelo.getHoraLlegada() == null || vuelo.getAvion() == null || vuelo.getOrigen() == null || vuelo.getDestino() == null)
             return Response.status(500).entity(vuelo).build();
+        if (this.sistemaGestion.getAvion(vuelo.getAvion().getId()) == null){
+            return Response.status(404).entity("Avion no encontrado").build();
+        }
         this.sistemaGestion.addVuelo(vuelo.getId(), vuelo.getHoraSalida(), vuelo.getHoraLlegada(), vuelo.getAvion().getId(), vuelo.getOrigen(), vuelo.getDestino());
         return Response.status(201).entity(vuelo).build();
     }
@@ -87,7 +107,7 @@ public class SistemaGestionService {
     public Response newUsuario(Usuario usuario) {
         if (usuario.getId() == null || usuario.getNombre() == null)
             return Response.status(500).entity(usuario).build();
-        ((SistemaGestionImpl) this.sistemaGestion).addUsuario(usuario);
+        this.sistemaGestion.addUsuario(usuario);
         return Response.status(201).entity(usuario).build();
     }
 
@@ -100,7 +120,7 @@ public class SistemaGestionService {
     @Path("/maleta")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response facturarMaleta(@QueryParam("vueloId") String vueloId, @QueryParam("usuarioId") String usuarioId) {
-        Usuario usuario = ((SistemaGestionImpl) this.sistemaGestion).getUsuario(usuarioId);
+        Usuario usuario = this.sistemaGestion.getUsuario(usuarioId);
         if (usuario == null)
             return Response.status(500).entity("Usuario no encontrado").build();
         this.sistemaGestion.facturarMaleta(vueloId, usuario);
@@ -120,6 +140,45 @@ public class SistemaGestionService {
         if (maletas == null)
             return Response.status(404).entity("Vuelo no encontrado").build();
         GenericEntity<List<Maleta>> entity = new GenericEntity<List<Maleta>>(maletas) {};
+        return Response.status(200).entity(entity).build();
+    }
+
+    @GET
+    @ApiOperation(value = "get all Aviones", notes = "Retorna una lista de todos los aviones")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successful", response = Avion.class, responseContainer = "List")
+    })
+    @Path("/aviones")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAllAviones() {
+        List<Avion> aviones = this.sistemaGestion.getAllAviones();
+        GenericEntity<List<Avion>> entity = new GenericEntity<List<Avion>>(aviones) {};
+        return Response.status(200).entity(entity).build();
+    }
+
+    @GET
+    @ApiOperation(value = "get all Vuelos", notes = "Retorna una lista de todos los vuelos")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successful", response = Vuelo.class, responseContainer = "List")
+    })
+    @Path("/vuelos")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAllVuelos() {
+        List<Vuelo> vuelos = this.sistemaGestion.getAllVuelos();
+        GenericEntity<List<Vuelo>> entity = new GenericEntity<List<Vuelo>>(vuelos) {};
+        return Response.status(200).entity(entity).build();
+    }
+
+    @GET
+    @ApiOperation(value = "get all Usuarios", notes = "Retorna una lista de todos los usuarios")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successful", response = Usuario.class, responseContainer = "List")
+    })
+    @Path("/usuarios")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAllUsuarios() {
+        List<Usuario> usuarios = this.sistemaGestion.getAllUsuarios();
+        GenericEntity<List<Usuario>> entity = new GenericEntity<List<Usuario>>(usuarios) {};
         return Response.status(200).entity(entity).build();
     }
 }

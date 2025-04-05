@@ -1,34 +1,34 @@
 package edu.upc.dsa.models;
 
+import edu.upc.dsa.exceptions.AvionNoExisteException;
+import edu.upc.dsa.exceptions.VueloNoExisteException;
 import edu.upc.dsa.util.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
-import java.util.Queue;
+import java.util.Stack;
 
 public class Vuelo {
-    private String id;
-    private Date horaSalida;
-    private Date horaLlegada;
-    private Avion avion;
-    private String origen;
-    private String destino;
-    private Queue<Maleta> maletas;
+    String id;
+    Date horaSalida;
+    Date horaLlegada;
+    Avion avion;
+    String origen;
+    String destino;
+    Stack<Maleta> maletas;
 
     public Vuelo() {
-        this.id = RandomUtils.getId();
-        this.maletas = new LinkedList<>();
     }
 
     public Vuelo(String id, Date horaSalida, Date horaLlegada, Avion avion, String origen, String destino) {
-        this();
-        if (id != null) this.id = id;
+        this.id = id;
         this.horaSalida = horaSalida;
         this.horaLlegada = horaLlegada;
         this.avion = avion;
         this.origen = origen;
         this.destino = destino;
+        this.maletas = new Stack<>();
     }
 
     public String getId() {
@@ -79,12 +79,12 @@ public class Vuelo {
         this.destino = destino;
     }
 
-    public Queue<Maleta> getMaletas() {
+    public Stack<Maleta> getMaletas() {
         return maletas;
     }
 
     public void addMaleta(Maleta maleta) {
-        this.maletas.add(maleta);
+        this.maletas.push(maleta);
     }
 
     @Override

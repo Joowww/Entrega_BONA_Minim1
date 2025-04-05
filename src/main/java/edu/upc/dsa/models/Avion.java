@@ -1,20 +1,15 @@
 package edu.upc.dsa.models;
 
-import edu.upc.dsa.util.RandomUtils;
-
-
 public class Avion {
-    private String id;
-    private String modelo;
-    private String compania;
+    String id;
+    String modelo;
+    String compania;
 
     public Avion() {
-        this.id = RandomUtils.getId();
     }
 
     public Avion(String id, String modelo, String compania) {
-        this();
-        if (id != null) this.id = id;
+        this. id = id;
         this.modelo = modelo;
         this.compania = compania;
     }

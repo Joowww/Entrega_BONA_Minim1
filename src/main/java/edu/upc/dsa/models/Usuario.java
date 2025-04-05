@@ -1,17 +1,20 @@
 package edu.upc.dsa.models;
 
-import edu.upc.dsa.util.RandomUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class Usuario {
-    private String id;
-    private String nombre;
+    String id;
+    String nombre;
+    String apellido;
 
-    public Usuario(String id, String nombre) {
+    public Usuario() {
+    }
+
+    public Usuario(String id, String nombre, String apellido) {
         this.id = id;
         this.nombre = nombre;
+        this.apellido = apellido;
     }
 
     public String getId() {
@@ -30,9 +33,17 @@ public class Usuario {
         this.nombre = nombre;
     }
 
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+
     @Override
     public String toString() {
-        return "Usuario [id=" + id + ", nombre=" + nombre + "]";
+        return "Usuario [id=" + id + ", nombre=" + nombre + ", apellido=" + apellido + "]";
     }
 
 }

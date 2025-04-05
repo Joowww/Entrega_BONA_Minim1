@@ -3,16 +3,17 @@ package edu.upc.dsa.models;
 import edu.upc.dsa.util.RandomUtils;
 
 public class Maleta {
-    private String id;
-    private Usuario usuario;
+    String id;
+    Usuario usuario;
+    Vuelo vuelo;
 
     public Maleta() {
-        this.id = RandomUtils.getId();
     }
 
-    public Maleta(Usuario usuario) {
-        this();
+    public Maleta(Usuario usuario, Vuelo vuelo) {
+        this.id = RandomUtils.getId();
         this.usuario = usuario;
+        this.vuelo = vuelo;
     }
 
     public String getId() {
@@ -29,6 +30,14 @@ public class Maleta {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
+    }
+
+    public Vuelo getVuelo() {
+        return vuelo;
+    }
+
+    public void setVuelo(Vuelo vuelo) {
+        this.vuelo = vuelo;
     }
 
     @Override
